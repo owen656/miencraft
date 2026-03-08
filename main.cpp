@@ -276,6 +276,12 @@ int main(int argc,char* argv[])
             playerX -= rx * speed * deltaTime;
             playerZ -= rz * speed * deltaTime;
         }
+        if (state[SDL_SCANCODE_SPACE]) {
+            playerY += speed * deltaTime;
+        }
+        if (state[SDL_SCANCODE_LSHIFT]) {
+            playerY -= speed * deltaTime;
+        }
 
         glClearColor(0.5f,0.7f,1.0f,1);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);

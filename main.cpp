@@ -1,6 +1,24 @@
 #include <iostream>
 #include <SDL3/SDL.h>
 
+SDL_Texture* LoadSurface(std::string relative_path, SDL_Renderer* renderer){
+    std::string base_path = SDL_GetBasePath();
+    std::string full_path = std::string(base_path) + relative_path;
+    SDL_Surface* surface = SDL_LoadPNG(full_path.c_str());
+    if (!surface) {
+        std::cerr << "Failed to load Surface" << SDL_GetError() << std::endl;
+        return nullptr;
+    } else {
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_DestroySurface(surface);
+        if (!texture) {
+            std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
+            return nullptr;
+        }
+        return texture;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     // 1. Initialize SDL (video is enough for window + basic image loading)
@@ -13,7 +31,7 @@ int main(int argc, char* argv[])
 
     // 2. Create window
     SDL_Window* window = SDL_CreateWindow(
-        "SDL3 Starting Frame",
+        "Minecraft",
         1280,               // width
         720,                // height
         SDL_WINDOW_RESIZABLE
@@ -35,6 +53,8 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "Window & renderer ready!\n";
+
+    SDL_Texture* grass = LoadSurface("grass.png",renderer);
 
     // 4. Main loop
     bool running = true;

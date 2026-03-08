@@ -72,13 +72,20 @@ GLuint LoadTexture(const char* file)
 
 void InitOpenGL(int width, int height)
 {
-    glViewport(0,0,width,height);
+    glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    float aspect = (float)width/(float)height;
-    glFrustum(-aspect, aspect, -1, 1, 0.1, 100);   // or even 0.05
+    float aspect = (float)width / (float)height;
+
+    float fov_y_tan_half = tan(10.0f * M_PI / 360.0f);
+    float top    = fov_y_tan_half;
+    float bottom = -fov_y_tan_half;
+    float right  = top * aspect;
+    float left   = -right;
+
+    glFrustum(left, right, bottom, top, 0.1f, 200.0f);
 
     glMatrixMode(GL_MODELVIEW);
 
@@ -212,7 +219,7 @@ int main(int argc,char* argv[])
     yaw=0;
     pitch=0;
 
-    float speed=10.0f;
+    float speed= 1.0f;
     float damper = 0.4f;
 
     Uint64 NOW = SDL_GetPerformanceCounter();
@@ -277,8 +284,14 @@ int main(int argc,char* argv[])
         glRotatef(-yaw,0,1,0);
         glTranslatef(-playerX,-playerY,-playerZ);
         RenderCube(0.0f, 0.0f, 0.0f, "grass");
-        RenderCube(1.0f,0.0f,0.0f,"dirt");
-        RenderCube(-1.0f,0.0f,0.0f,"stone");
+        RenderCube(1.0f, 0.0f, 0.0f, "grass");
+        RenderCube(2.0f, 0.0f, 0.0f, "grass");
+        RenderCube(0.0f, 0.0f, 1.0f, "grass");
+        RenderCube(1.0f, 0.0f, 1.0f, "grass");
+        RenderCube(2.0f, 0.0f, 1.0f, "grass");
+        RenderCube(0.0f, 0.0f, 2.0f, "grass");
+        RenderCube(1.0f, 0.0f, 2.0f, "grass");
+        RenderCube(2.0f, 0.0f, 2.0f, "grass");
 
         SDL_GL_SwapWindow(window);
     }

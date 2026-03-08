@@ -6,6 +6,8 @@
 #include <SDL3_image/SDL_image.h>
 #include <list>
 #include <unordered_map>
+#include <sstream>
+#include <tuple>
 
 float playerX=0;
 float playerY=0;
@@ -211,6 +213,33 @@ void RenderCube(float wx, float wy, float wz, std::string type) {
     glPopMatrix();
 }
 
+std::tuple<int,int,int> ParseCoords(const std::string& str)
+{
+    stringstream ss(str);
+    string part;
+
+    int x, y, z;
+
+    getline(ss, part, '_');
+    x = stoi(part);
+
+    getline(ss, part, '_');
+    y = stoi(part);
+
+    getline(ss, part, '_');
+    z = stoi(part);
+
+    return make_tuple(x, y, z);
+}
+
+void AddBlock(int x, int y, int z, string type) {
+    worldBlocks[posKey(x, y, z)] = type;
+}
+
+void AddLotsOfBlocks(int x, int y, int z, int len, int height, int width, string type){
+    
+}
+
 int main(int argc,char* argv[])
 {
     SDL_Init(SDL_INIT_VIDEO);
@@ -238,17 +267,15 @@ int main(int argc,char* argv[])
     GLuint grassSide = LoadTexture("grass.png");
     GLuint dirt = LoadTexture("dirt.png");
 
-    worldBlocks[posKey(0,0,0)] = "grass";
-    worldBlocks[posKey(1,0,0)] = "grass";
-    worldBlocks[posKey(2,0,0)] = "grass";
-    
-    worldBlocks[posKey(0,0,1)] = "grass";
-    worldBlocks[posKey(1,0,1)] = "grass";
-    worldBlocks[posKey(2,0,1)] = "grass";
-
-    worldBlocks[posKey(0,0,2)] = "grass";
-    worldBlocks[posKey(1,0,2)] = "grass";
-    worldBlocks[posKey(2,0,2)] = "grass";
+    AddBlock(0, 0, 0, "grass");
+    AddBlock(1, 0, 0, "grass");
+    AddBlock(2, 0, 0, "grass");
+    AddBlock(0, 0, 1, "grass");
+    AddBlock(1, 0, 1, "grass");
+    AddBlock(2, 0, 1, "grass");
+    AddBlock(0, 0, 2, "grass");
+    AddBlock(1, 0, 2, "grass");
+    AddBlock(2, 0, 2, "grass");
 
     playerX=0;
     playerY=0;
@@ -327,15 +354,11 @@ int main(int argc,char* argv[])
         glRotatef(-pitch,1,0,0);
         glRotatef(-yaw,0,1,0);
         glTranslatef(-playerX,-playerY,-playerZ);
-        RenderCube(0.0f, 0.0f, 0.0f, "grass");
-        RenderCube(1.0f, 0.0f, 0.0f, "grass");
-        RenderCube(2.0f, 0.0f, 0.0f, "grass");
-        RenderCube(0.0f, 0.0f, 1.0f, "grass");
-        RenderCube(1.0f, 0.0f, 1.0f, "grass");
-        RenderCube(2.0f, 0.0f, 1.0f, "grass");
-        RenderCube(0.0f, 0.0f, 2.0f, "grass");
-        RenderCube(1.0f, 0.0f, 2.0f, "grass");
-        RenderCube(2.0f, 0.0f, 2.0f, "grass");
+
+        for (const auto& [coords, block_type] : worldBlocks) {
+            tuple<int , int, int> CoordTuple = ParseCoords(coords);
+            RenderCube(get<0>(CoordTuple), get<1>(CoordTuple), get<2>(CoordTuple), block_type);
+        }
 
         SDL_GL_SwapWindow(window);
     }

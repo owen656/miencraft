@@ -18,12 +18,17 @@ using namespace std;
 
 list<tuple<string, string, string>> TextureAtlas = {
     tuple<string, string, string>("grass_top.png", "grass.png", "dirt.png"),
-    tuple<string, string, string>("dirt.png","dirt.png","dirt.png")
+    tuple<string, string, string>("dirt.png","dirt.png","dirt.png"),
+    tuple<string, string, string>("stone.png","stone.png","stone.png"),
+    tuple<string, string, string>("error.png","error.png","error.png")
 };
 unordered_map<std::string, int> KeyMapper = {
+    {"error", 0},
     {"grass" , 1},
-    {"dirt", 2}
+    {"dirt", 2},
+    {"stone", 3}
 };
+unordered_map<string, GLuint> Textures = {};
 
 GLuint LoadTexture(const char* file)
 {
@@ -40,10 +45,6 @@ GLuint LoadTexture(const char* file)
         std::cout << "Conversion failed for " << file << ": " << SDL_GetError() << std::endl;
         return 0;
     }
-
-    // Optional: print to confirm
-    std::cout << "Loaded " << file << " → format: " << SDL_GetPixelFormatName(surface->format)
-              << " (" << surface->w << "x" << surface->h << ")" << std::endl;
 
     GLuint texture;
     glGenTextures(1, &texture);
@@ -85,14 +86,14 @@ void InitOpenGL(int width, int height)
     glEnable(GL_TEXTURE_2D);
 }
 
-void DrawCube(GLuint top, GLuint side, GLuint bottom, float x,float y,float z)
+void DrawCube(GLuint top, GLuint side, GLuint bottom, float x, float y, float z)
 {
     glPushMatrix();
-    glTranslatef(x,y,z);
+    glTranslatef(x, y, z);
 
+    // Sides (front/back/left/right)
+    glBindTexture(GL_TEXTURE_2D, side);
     glBegin(GL_QUADS);
-
-    glBindTexture(GL_TEXTURE_2D,side);
 
     // Front
     glTexCoord2f(0,1); glVertex3f(-0.5,-0.5, 0.5);
@@ -120,59 +121,61 @@ void DrawCube(GLuint top, GLuint side, GLuint bottom, float x,float y,float z)
 
     glEnd();
 
-    glBindTexture(GL_TEXTURE_2D,top);
-
-    glBegin(GL_QUADS);
-
     // Top
+    glBindTexture(GL_TEXTURE_2D, top);   // ← explicit re-bind
+    glBegin(GL_QUADS);
     glTexCoord2f(0,1); glVertex3f(-0.5,0.5, 0.5);
     glTexCoord2f(1,1); glVertex3f( 0.5,0.5, 0.5);
     glTexCoord2f(1,0); glVertex3f( 0.5,0.5,-0.5);
     glTexCoord2f(0,0); glVertex3f(-0.5,0.5,-0.5);
-
     glEnd();
 
-    glBindTexture(GL_TEXTURE_2D,bottom);
-
-    glBegin(GL_QUADS);
-
     // Bottom
+    glBindTexture(GL_TEXTURE_2D, bottom);  // ← explicit re-bind
+    glBegin(GL_QUADS);
     glTexCoord2f(0,1); glVertex3f(-0.5,-0.5,-0.5);
     glTexCoord2f(1,1); glVertex3f( 0.5,-0.5,-0.5);
     glTexCoord2f(1,0); glVertex3f( 0.5,-0.5, 0.5);
     glTexCoord2f(0,0); glVertex3f(-0.5,-0.5, 0.5);
-
     glEnd();
 
     glPopMatrix();
 }
 
 std::tuple<string, string, string> Find_tuple(string Index_name) {
-    int indexVal = 1;
-    int Index_value = KeyMapper[Index_name];
-    for (const auto& index_tuple : TextureAtlas){
-        if (indexVal == Index_value){
-            return(index_tuple);
-        }
-        indexVal++;
+    auto it = KeyMapper.find(Index_name);
+    if (it == KeyMapper.end()) {
+        std::cout << "Unknown block type: " << Index_name << std::endl;
+        return {"error.png", "error.png", "error.png"};  // fallback
     }
+    int target = it->second;
+
+    int idx = 1;
+    for (const auto& tup : TextureAtlas) {
+        if (idx == target) {
+            return tup;
+        }
+        idx++;
+    }
+
+    std::cout << "Index not found for " << Index_name << " (value=" << target << ")" << std::endl;
+    return {"error.png", "error.png", "error.png"};  // safe fallback
 }
 
-void RenderCube(float x, float y, float z, std::string type){
-        glRotatef(-pitch,1,0,0);
-        glRotatef(-yaw,0,1,0);
-        glTranslatef(-playerX,-playerY,-playerZ);
+void RenderCube(float x, float y, float z, std::string type) {
+    auto tup = Find_tuple(type);
+    string top    = std::get<0>(tup);
+    string side   = std::get<1>(tup);
+    string bottom = std::get<2>(tup);
 
-        tuple<string, string, string> typetuple = Find_tuple(type);
+    GLuint t = Textures[top];
+    GLuint s = Textures[side];
+    GLuint b = Textures[bottom];
 
-        string top_ = get<0>(typetuple);
-        string side_ = get<1>(typetuple);
-        string bottom_ = get<2>(typetuple);
-        GLuint Top = LoadTexture(top_.c_str());
-        GLuint Side = LoadTexture(side_.c_str());
-        GLuint Bottom = LoadTexture(bottom_.c_str());
-
-        DrawCube(Top,Side,Bottom,0,0,0);
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    DrawCube(t, s, b, 0,0,0);  // or pass x,y,z to DrawCube if you want
+    glPopMatrix();
 }
 
 int main(int argc,char* argv[])
@@ -191,6 +194,12 @@ int main(int argc,char* argv[])
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     InitOpenGL(1280,720);
+
+    Textures["grass_top.png"]   = LoadTexture("grass_top.png");
+    Textures["grass.png"]       = LoadTexture("grass.png");
+    Textures["dirt.png"]        = LoadTexture("dirt.png");
+    Textures["stone.png"]       = LoadTexture("stone.png");
+    Textures["error.png"]       = LoadTexture("error.png");
 
     GLuint grassTop = LoadTexture("grass_top.png");
     GLuint grassSide = LoadTexture("grass.png");
@@ -238,34 +247,38 @@ int main(int argc,char* argv[])
         }
 
         const bool* state = SDL_GetKeyboardState(NULL);
+        float rad = yaw * M_PI / 180.0f;
+        float fx = sin(rad);   // forward X
+        float fz = cos(rad);   // forward Z
+        float rx = cos(rad);   // right X
+        float rz = -sin(rad);  // right Z
+
         if (state[SDL_SCANCODE_W]) {
-            playerX -= sin(yaw * M_PI / 180.0) * speed * deltaTime;
-            playerZ -= cos(yaw * M_PI / 180.0) * speed * deltaTime;   // ← changed - to +
-        }
-        if (state[SDL_SCANCODE_SPACE]){
-            playerY += speed*deltaTime;
-        }
-        if (state[SDL_SCANCODE_LSHIFT]){
-            playerY -= speed*deltaTime;
+            playerX -= fx * speed * deltaTime;
+            playerZ -= fz * speed * deltaTime;
         }
         if (state[SDL_SCANCODE_S]) {
-            playerX += sin(yaw * M_PI / 180.0) * speed * deltaTime;
-            playerZ += cos(yaw * M_PI / 180.0) * speed * deltaTime;   // ← changed + to -
-        }
-        if (state[SDL_SCANCODE_A]) {
-            playerX-=cos(yaw*M_PI/180)*speed*deltaTime;
-            playerZ-=sin(yaw*M_PI/180)*speed*deltaTime;
+            playerX += fx * speed * deltaTime;
+            playerZ += fz * speed * deltaTime;
         }
         if (state[SDL_SCANCODE_D]) {
-            playerX+=cos(yaw*M_PI/180)*speed*deltaTime;
-            playerZ+=sin(yaw*M_PI/180)*speed*deltaTime;
+            playerX += rx * speed * deltaTime;
+            playerZ += rz * speed * deltaTime;
+        }
+        if (state[SDL_SCANCODE_A]) {
+            playerX -= rx * speed * deltaTime;
+            playerZ -= rz * speed * deltaTime;
         }
 
         glClearColor(0.5f,0.7f,1.0f,1);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
+        glRotatef(-pitch,1,0,0);
+        glRotatef(-yaw,0,1,0);
+        glTranslatef(-playerX,-playerY,-playerZ);
         RenderCube(0.0f, 0.0f, 0.0f, "grass");
-        RenderCube(50.0f,0.0f,0.0f,"dirt");
+        RenderCube(1.0f,0.0f,0.0f,"dirt");
+        RenderCube(-1.0f,0.0f,0.0f,"stone");
 
         SDL_GL_SwapWindow(window);
     }

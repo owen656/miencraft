@@ -4,6 +4,26 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3_image/SDL_image.h>
+#include <list>
+#include <unordered_map>
+
+float playerX=0;
+float playerY=0;
+float playerZ=3;
+
+float yaw=0;
+float pitch=0;
+
+using namespace std;
+
+list<tuple<string, string, string>> TextureAtlas = {
+    tuple<string, string, string>("grass_top.png", "grass.png", "dirt.png"),
+    tuple<string, string, string>("dirt.png","dirt.png","dirt.png")
+};
+unordered_map<std::string, int> KeyMapper = {
+    {"grass" , 1},
+    {"dirt", 2}
+};
 
 GLuint LoadTexture(const char* file)
 {
@@ -127,12 +147,40 @@ void DrawCube(GLuint top, GLuint side, GLuint bottom, float x,float y,float z)
     glPopMatrix();
 }
 
+std::tuple<string, string, string> Find_tuple(string Index_name) {
+    int indexVal = 1;
+    int Index_value = KeyMapper[Index_name];
+    for (const auto& index_tuple : TextureAtlas){
+        if (indexVal == Index_value){
+            return(index_tuple);
+        }
+        indexVal++;
+    }
+}
+
+void RenderCube(float x, float y, float z, std::string type){
+        glRotatef(-pitch,1,0,0);
+        glRotatef(-yaw,0,1,0);
+        glTranslatef(-playerX,-playerY,-playerZ);
+
+        tuple<string, string, string> typetuple = Find_tuple(type);
+
+        string top_ = get<0>(typetuple);
+        string side_ = get<1>(typetuple);
+        string bottom_ = get<2>(typetuple);
+        GLuint Top = LoadTexture(top_.c_str());
+        GLuint Side = LoadTexture(side_.c_str());
+        GLuint Bottom = LoadTexture(bottom_.c_str());
+
+        DrawCube(Top,Side,Bottom,0,0,0);
+}
+
 int main(int argc,char* argv[])
 {
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_Window* window = SDL_CreateWindow(
-        "Voxel Test",
+        "Minecraft",
         1280,
         720,
         SDL_WINDOW_OPENGL
@@ -148,12 +196,12 @@ int main(int argc,char* argv[])
     GLuint grassSide = LoadTexture("grass.png");
     GLuint dirt = LoadTexture("dirt.png");
 
-    float playerX=0;
-    float playerY=0;
-    float playerZ=3;
+    playerX=0;
+    playerY=0;
+    playerZ=0;
 
-    float yaw=0;
-    float pitch=0;
+    yaw=0;
+    pitch=0;
 
     float speed=10.0f;
     float damper = 0.4f;
@@ -215,14 +263,9 @@ int main(int argc,char* argv[])
 
         glClearColor(0.5f,0.7f,1.0f,1);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
         glLoadIdentity();
-
-        glRotatef(-pitch,1,0,0);
-        glRotatef(-yaw,0,1,0);
-        glTranslatef(-playerX,-playerY,-playerZ);
-
-        DrawCube(grassTop,grassSide,dirt,0,0,0);
+        RenderCube(0.0f, 0.0f, 0.0f, "grass");
+        RenderCube(50.0f,0.0f,0.0f,"dirt");
 
         SDL_GL_SwapWindow(window);
     }
